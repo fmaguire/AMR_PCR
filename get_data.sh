@@ -9,7 +9,7 @@ wget -P data/primers https://www.eurl-ar.eu/CustomerData/Files/Folders/25-resour
 
 # get CARD data
 mkdir -p data/CARD_prevalence
-wget -P CARD_prevalence https://card.mcmaster.ca/download/6/prevalence-v3.0.1.tar.gz 
+wget -P data/CARD_prevalence https://card.mcmaster.ca/download/6/prevalence-v3.0.1.tar.gz 
 cd data/CARD_prevalence
 tar xvf prevalence-v3.0.1.tar.gz
 cd ../..
