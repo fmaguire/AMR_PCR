@@ -225,9 +225,22 @@ def parse_vaware_output(output_fp):
         Parse the ARO from the CARD sequence ID
         """
         if id_val.startswith('Prevalence_Sequence_ID'):
-            return id_val.split('|')[1].replace('ARO_Name:', '')
+            return id_val.split('|')[1].replace('ARO_Name:', '').split(' [')[0]
         else:
-            return id_val.split('|')[5]
+            return id_val.split('|')[5].split(' [')[0]
+
+    def get_aro(id_val):
+        """
+        Get the ARO ID
+        """
+        try:
+            if id_val.startswith('Prevalence_Sequence_ID'):
+                return id_val.split('|')[2].replace('ARO:', '')
+            else:
+                return id_val.split('|')[4].replace('ARO:', '')
+        except:
+            print(id_val)
+            assert False
 
     def get_type(id_val):
         """
@@ -238,25 +251,22 @@ def parse_vaware_output(output_fp):
         else:
             return 'Canonical'
 
-    df['Name'] = df['SILVA ID'].apply(get_name)
-    df['Type'] = df['SILVA ID'].apply(get_type)
+    df['ID'] = df['SILVA ID'] + " " + df['Taxonomy']
+    df = df.drop(['SILVA ID', 'Taxonomy'], axis=1)
 
+    df['Name'] = df['ID'].apply(get_name)
+    df['Type'] = df['ID'].apply(get_type)
+    df['ARO'] = df['ID'].apply(get_aro)
 
-    df.loc[df['Insert Length'].isna(), 'PCR_quality'] = 'Missed'
-    df.loc[df['Insert Length'].isna(), 'Reason'] = 'No Match'
-    df.loc[df['Insert Length'] >= 1000, 'PCR_quality'] = 'Missed'
-    df.loc[df['Insert Length'] >= 1000, 'Reason'] = 'Insert Too Long'
+    df['major_mismatches'] = df['FP Gaps'] + df["FP 3' Mismatches"] + \
+            df['RP Gaps'] + df["RP 3' Mismatches"]
+    df['total_mismatches'] = df['FP Mismatches'] + df['RP Mismatches']
+    df['minor_mismatches'] = df['total_mismatches'] - df['major_mismatches']
 
     # 1000bp being max insert size feasible and no other issues
-    perfect = (df['Insert Length'] <= 1000) & \
-              (df["FP Mismatches"] == 0) & \
-              (df['FP Gaps'] == 0) & \
-              (df["FP 3' Mismatches"] == 0) & \
-              (df['RP Mismatches'] == 0) & \
-              (df['RP Gaps'] == 0) & \
-              (df["RP 3' Mismatches"] == 0)
+    perfect = (df['Insert Length'] <= 1000) & (df['total_mismatches'] == 0)
     df.loc[perfect, 'PCR_quality'] = 'Perfect'
-    df.loc[perfect, 'Reason'] = 'Perfect Match'
+    df.loc[perfect, 'Reason'] = 'Perfect'
 
 
     # first we mark all those with < 3 mismatches in FP and RP as minor mismatch
@@ -265,77 +275,44 @@ def parse_vaware_output(output_fp):
     ## gaps and 3' mismatches are most important so treating less than 3
     ## non-gap or 3' mismatches as minor issues
     minor = (df['Insert Length'] <= 1000) & \
-            (df["FP Mismatches"] < 3) & \
-            (df["FP Mismatches"] > 0) & \
-            (df['RP Mismatches'] < 3) & \
-            (df['RP Mismatches'] > 0)
+            (df['minor_mismatches'] < 3) & \
+            (df['minor_mismatches'] > 0) & \
+            (df['major_mismatches'] == 0)
     df.loc[minor, 'PCR_quality'] = 'Minor Mismatch'
-    df.loc[minor, 'Reason'] = "Non-gap or terminal mismatches (<3)"
-
-    minor = (df['Insert Length'] <= 1000) & \
-            ((df["FP Mismatches"] < 3) & \
-            (df["FP Mismatches"] > 0)) | \
-            ((df['RP Mismatches'] < 3) & \
-            (df['RP Mismatches'] > 0))
-    df.loc[minor, 'PCR_quality'] = 'Minor Mismatch'
-    df.loc[minor, 'Reason'] = "Non-gap or terminal mismatches (<3)"
-
-
+    df.loc[minor, 'Reason'] = "Minor Mismatches (<3)"
 
 
     ## gaps and 3' mismatches are most important so treating less than 3
     ## non-gap or 3' mismatches as minor issues
     mismatch = (df['Insert Length'] <= 1000) & \
-               (df["FP Mismatches"] > 2) & \
-               (df["FP Mismatches"] < 5) & \
-               (df['RP Mismatches'] > 2) & \
-               (df['RP Mismatches'] < 5)
+               (df['minor_mismatches'] > 2) & \
+               (df['minor_mismatches'] <= 5) & \
+               (df['major_mismatches'] == 0)
     df.loc[mismatch, 'PCR_quality'] = 'Mismatch'
-    df.loc[mismatch, 'Reason'] = "Non-gap or terminal mismatches (2-5)"
-
-    mismatch = (df['Insert Length'] <= 1000) & \
-               ((df["FP Mismatches"] > 2) & \
-               (df["FP Mismatches"] < 5)) | \
-               (df['RP Mismatches'] > 2) & \
-               ((df['RP Mismatches'] < 5))
-    df.loc[mismatch, 'PCR_quality'] = 'Mismatch'
-    df.loc[mismatch, 'Reason'] = "Non-gap or terminal mismatches (2-5)"
-
-
+    df.loc[mismatch, 'Reason'] = "Minor Mismatches (2-5)"
 
     # more than 5 non-gap or terminal mismatches
     many_mismatch = (df['Insert Length'] <= 1000) & \
-                    (df["FP Mismatches"] > 5) & \
-                    (df['RP Mismatches'] > 5)
+                    (df["minor_mismatches"] > 5) & \
+                    (df["major_mismatches"] == 0)
     df.loc[many_mismatch, 'PCR_quality'] = 'Probable Fail'
-    df.loc[many_mismatch, 'Reason'] = "Non-gap or terminal mismatches (>5)"
-
-    many_mismatch = (df['Insert Length'] <= 1000) & \
-                    (df["FP Mismatches"] > 5) | \
-                    (df['RP Mismatches'] > 5)
-    df.loc[many_mismatch, 'PCR_quality'] = 'Probable Fail'
-    df.loc[many_mismatch, 'Reason'] = "Non-gap or terminal mismatches (>5)"
-
-
-
-
+    df.loc[many_mismatch, 'Reason'] = "Minor Mismatches (>5)"
 
     # Major issue is any terminal or gap issues
-    major = (df['FP Gaps'] == 1) | \
-            (df["FP 3' Mismatches"] == 1) | \
-            (df['RP Gaps'] == 1) | \
-            (df["RP 3' Mismatches"] == 1)
-    df.loc[minor, 'PCR_quality'] = 'Major Mismatch'
-    df.loc[minor, 'Reason'] = "A gap or terminal mismatches"
+    major = (df["major_mismatches"] == 1)
+    df.loc[major, 'PCR_quality'] = 'Major Mismatch'
+    df.loc[major, 'Reason'] = "Gap/Terminal Mismatch (1)"
 
     # more than 1 terminal or gap mismatch is a likely fail
-    fail = (df['FP Gaps'] > 1) | \
-              (df["FP 3' Mismatches"] > 1) | \
-              (df['RP Gaps'] > 1) | \
-              (df["RP 3' Mismatches"] > 1)
+    fail = (df["major_mismatches"] > 1)
     df.loc[fail, 'PCR_quality'] = 'Probable Fail'
-    df.loc[fail, 'Reason'] = "Multiple gap or terminal mismatches"
+    df.loc[fail, 'Reason'] = "Gap/Terminal Mismatch (>1)"
 
+
+    df.loc[df['Insert Length'].isna(), 'PCR_quality'] = 'Missed'
+    df.loc[df['Insert Length'].isna(), 'Reason'] = 'No Match'
+    df.loc[df['Insert Length'] >= 1000, 'PCR_quality'] = 'Missed'
+    df.loc[df['Insert Length'] >= 1000, 'Reason'] = 'Insert Too Long'
 
     return df
 
@@ -360,3 +337,13 @@ def build_vaware_script(primers, output_dir, threads):
                     "-f {1} -r {2} > {0}/{3}\n".format(output_dir, forward,
                                                       reverse, name, threads)))
             fh.write('echo "{} done"\n'.format(name))
+
+def summarise_name(card, name):
+    """
+    Parse and filter all irrelevant AROs from dataframe
+    """
+    df = parse_vaware_output('primer_assessment/{}'.format(name))
+    df['Primer Set'] = name
+    names, aros = card.get_aro_for_name(name)
+    df = df[df['ARO'].isin(aros)]
+    return df
