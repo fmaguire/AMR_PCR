@@ -1,4 +1,4 @@
-#AMR PCR Primers
+# AMR PCR Primers
 
 We are interested in how well different primers cover the AMR gene diversity
 we now have access to via CARD prevalance.
