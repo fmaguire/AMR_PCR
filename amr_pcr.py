@@ -351,6 +351,9 @@ def summarise_name(card, name):
     return df
 
 def cleanUpPrimerAssessment(card):
+    """
+    gets rid of all the junk in the primer_assessment files
+    """
     for filename in os.listdir('primer_assessment'):
         print(filename)
         try:
@@ -360,6 +363,9 @@ def cleanUpPrimerAssessment(card):
             print("exception occured: {}".format(filename))
 
 def displayQuality(card):
+    """
+    summarize the PCR qualities (relative and abs counts) for all primers 
+    """
     qualityFrame = pd.DataFrame(columns = ['Name', 'Perfect', 'Minor Mismatch', 'Major Mismatch', 'Probable Fail', 'Missed', 'Total'])
     qualityFramePercent = pd.DataFrame(columns = ['Name', 'Perfect', 'Minor Mismatch', 'Major Mismatch', 'Probable Fail', 'Missed', 'Total'])
     
@@ -391,18 +397,20 @@ def displayQuality(card):
 
     qualityFrame = qualityFrame[['Name', 'Perfect', 'Minor Mismatch', 'Major Mismatch', 'Probable Fail', 'Missed', 'Total']]
     qualityFrame.columns = ['Name', 'Perfect(%)', 'Minor Mismatch(%)', 'Major Mismatch(%)', 'Probable Fail(%)', 'Missed(%)', 'Total(n)']
-    print(qualityFrame)
-    qualityFrame.to_csv('test.tsv', sep='\t')
+    #print(qualityFrame)
+    #qualityFrame.to_csv('test.tsv', sep='\t')
     
     qualityFramePercent = qualityFramePercent[['Name', 'Perfect', 'Minor Mismatch', 'Major Mismatch', 'Probable Fail', 'Missed', 'Total']]
     qualityFramePercent.columns = ['Name', 'Perfect(%)', 'Minor Mismatch(%)', 'Major Mismatch(%)', 'Probable Fail(%)', 'Missed(%)', 'Total(n)']
-    print(qualityFramePercent)
-
-    qualityFramePercent.to_csv('test.tsv', sep='\t')
+    #print(qualityFramePercent)
+    #qualityFramePercent.to_csv('test.tsv', sep='\t')
     
     return qualityFrame, qualityFramePercent
    
 def generateQualityFigure(df,filename):
+    """
+    plot the PCR qualities (relative and abs counts) for all primers 
+    """
     plt.rcParams["figure.figsize"] = (80,40)
     plt.rcParams['axes.facecolor'] = '#D3D3D3'
     plt.rcParams['axes.grid'] = True
@@ -414,5 +422,5 @@ def generateQualityFigure(df,filename):
     colors = (plt.cm.RdYlGn(np.linspace(0,1,5)))
     #print(plt.cm.RdYlGn(np.linspace(0,1,4)))
     qualityPlotFrame.plot.bar(x='Name', stacked=True, color=colors)
-    plt.savefig('{}.png'.format(filename))
+    #plt.savefig('{}.png'.format(filename))
     
