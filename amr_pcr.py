@@ -3,7 +3,9 @@
 import pandas as pd
 import json
 import re
-
+import os
+import matplotlib.pyplot as plt
+import numpy as np
 
 def read_primers(primer_tsv_fp):
     """
@@ -333,7 +335,7 @@ def build_vaware_script(primers, output_dir, threads):
             forward = row.loc['Sequence_tidy']
             ix, reverse = next(iter_rows)
             reverse = reverse.loc['Sequence_tidy']
-            fh.write(("VAware/build/vaware -t {4} -i {0}/all_CARD_nt.fasta " \
+            fh.write(("VAware/vaware -t {4} -i {0}/all_CARD_nt.fasta " \
                     "-f {1} -r {2} > {0}/{3}\n".format(output_dir, forward,
                                                       reverse, name, threads)))
             fh.write('echo "{} done"\n'.format(name))
@@ -347,3 +349,78 @@ def summarise_name(card, name):
     names, aros = card.get_aro_for_name(name)
     df = df[df['ARO'].isin(aros)]
     return df
+
+def cleanUpPrimerAssessment(card):
+    """
+    gets rid of all the junk in the primer_assessment files
+    """
+    for filename in os.listdir('primer_assessment'):
+        print(filename)
+        try:
+            if filename != "all_CARD_nt.fasta":
+                summarise_name(card, filename).to_csv('primer_assessment_clean/{}.tsv'.format(name), sep='\t')
+        except:
+            print("exception occured: {}".format(filename))
+
+def displayQuality(card):
+    """
+    summarize the PCR qualities (relative and abs counts) for all primers 
+    """
+    qualityFrame = pd.DataFrame(columns = ['Name', 'Perfect', 'Minor Mismatch', 'Major Mismatch', 'Probable Fail', 'Missed', 'Total'])
+    qualityFramePercent = pd.DataFrame(columns = ['Name', 'Perfect', 'Minor Mismatch', 'Major Mismatch', 'Probable Fail', 'Missed', 'Total'])
+    
+    for filename in os.listdir('primer_assessment'):
+        print(filename)
+        try:
+            if filename != "all_CARD_nt.fasta":
+                temp = summarise_name(card, filename)
+                #temp['PCR_quality'].value_counts().plot(kind='bar')
+                #plt.savefig('qualityFigures/{}.png'.format(filename), figsize=(16, 18))
+                quality = pd.DataFrame(temp['PCR_quality'].value_counts()).T
+                totalCount = quality.sum(axis=1)
+                quality['Total'] = totalCount
+                quality['Name'] = filename
+                
+                qualityPercent = pd.DataFrame(temp['PCR_quality'].value_counts()).T
+                for columnName in qualityPercent.columns:
+                    qualityPercent[columnName] = (100 * quality[columnName] / totalCount).round(2)
+                qualityPercent['Total'] = totalCount
+                qualityPercent['Name'] = filename
+                
+                qualityFrame = qualityFrame.append(quality, ignore_index=True)
+                qualityFramePercent = qualityFramePercent.append(qualityPercent, ignore_index=True)
+
+        except:
+            print("exception occured: {}".format(filename))
+            #raise
+        #break
+
+    qualityFrame = qualityFrame[['Name', 'Perfect', 'Minor Mismatch', 'Major Mismatch', 'Probable Fail', 'Missed', 'Total']]
+    qualityFrame.columns = ['Name', 'Perfect(%)', 'Minor Mismatch(%)', 'Major Mismatch(%)', 'Probable Fail(%)', 'Missed(%)', 'Total(n)']
+    #print(qualityFrame)
+    #qualityFrame.to_csv('test.tsv', sep='\t')
+    
+    qualityFramePercent = qualityFramePercent[['Name', 'Perfect', 'Minor Mismatch', 'Major Mismatch', 'Probable Fail', 'Missed', 'Total']]
+    qualityFramePercent.columns = ['Name', 'Perfect(%)', 'Minor Mismatch(%)', 'Major Mismatch(%)', 'Probable Fail(%)', 'Missed(%)', 'Total(n)']
+    #print(qualityFramePercent)
+    #qualityFramePercent.to_csv('test.tsv', sep='\t')
+    
+    return qualityFrame, qualityFramePercent
+   
+def generateQualityFigure(df,filename):
+    """
+    plot the PCR qualities (relative and abs counts) for all primers 
+    """
+    plt.rcParams["figure.figsize"] = (80,40)
+    plt.rcParams['axes.facecolor'] = '#D3D3D3'
+    plt.rcParams['axes.grid'] = True
+    plt.rcParams['axes.grid.which'] = 'major'
+    plt.rcParams["axes.grid.axis"] ="y"    
+    plt.rcParams["font.size"] =50    
+    
+    qualityPlotFrame = df[['Name', 'Missed(%)', 'Probable Fail(%)','Major Mismatch(%)', 'Minor Mismatch(%)', 'Perfect(%)' ]]
+    colors = (plt.cm.RdYlGn(np.linspace(0,1,5)))
+    #print(plt.cm.RdYlGn(np.linspace(0,1,4)))
+    qualityPlotFrame.plot.bar(x='Name', stacked=True, color=colors)
+    #plt.savefig('{}.png'.format(filename))
+    
