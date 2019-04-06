@@ -1,0 +1,54 @@
+---
+title: "Systematic under-recovery of antimicrobial resistance genes using standarised primer sets"
+keywords:
+  - markdown
+  - publishing
+  - manubot
+lang: en-CA
+author_info:
+  -
+    github: fmaguire
+    name: Finlay Maguire
+    initials: FM
+    orcid: 0000-0002-1203-9514
+    twitter: fmaguire
+    email: finlaymaguire@gmail.com
+    affiliations:
+      - Faculty of Computer Science, Dalhousie University
+    funders: Grant XXXXXXXX
+  -
+    github: imasianxd
+    name: Baofeng Jia
+    initials: BJ
+    orcid: XXXX-XXXX-XXXX-XXXX
+    email: jane.roe@whatever.edu
+    affiliations:
+      - Department of Biochemistry and Molecular Biology, Simon Fraser University 
+  -
+    github: mwhall
+    name: Michael W. Hall
+    initials: MWH
+    orcid: XXXX-XXXX-XXXX-XXXX
+    email: michael.w.hall@dal.ca
+    affiliations:
+      - Faculty of Computer Science, Dalhousie University
+  -
+    github: ajmcarthur
+    name: Andrew J. McArthur
+    initials: AJM
+    email: .hall@dal.ca
+    affiliations:
+      - McMaster University
+  -
+    name: Fiona S.L. Brinkman
+    initials: FSLB
+    email: jane.roe@whatever.edu
+    affiliations:
+      - Department of Biochemistry and Molecular Biology, Simon Fraser University 
+  -
+    name: Robert G. Beiko
+    initials: RGB
+    orcid: XXXX-XXXX-XXXX-XXXX
+    email: rbeiko@dal.ca
+    affiliations:
+      - Faculty of Computer Science, Dalhousie University
